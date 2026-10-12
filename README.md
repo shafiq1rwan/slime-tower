@@ -14,6 +14,10 @@ npm run preview   # serve the production build
 npm test          # animation, active combat, and spawn-queue checks
 ```
 
+**Play online:** https://shafiq1rwan.github.io/slime-tower/
+
+Every push to `main` runs the tests, builds, and deploys `dist/` to GitHub Pages via `.github/workflows/deploy.yml`. One-time setup: in the repo's **Settings → Pages**, set **Source** to **GitHub Actions**.
+
 ## Controls
 
 - Tap/click a slime to focus tower fire on it. A cyan ring marks the target; targets outside attack range remain marked as they approach. Tap the same slime, empty ground, or the × button to clear it.
