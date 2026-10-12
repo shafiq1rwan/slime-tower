@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1b2350" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Last Tower Standing</title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Phaser renders the battlefield here -->
+      <div id="game"></div>
+
+      <!-- DOM UI overlay (HUD, menus, upgrade cards). Built in src/ui/UIManager.js -->
+      <div id="ui">
+        <!-- ===== In-game HUD ===== -->
+        <div id="hud" class="hidden">
+          <div class="hud-left" data-reserve>
+            <div class="pill hp-pill" id="hp-pill">
+              <span class="icon icon-heart" data-icon="heart"></span>
+              <div class="hp-bar" id="hp-meter" role="progressbar" aria-label="Tower health" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200">
+                <div class="hp-ghost" id="hp-ghost"></div>
+                <div class="hp-fill" id="hp-fill"></div>
+                <span class="hp-text" id="hp-text">200 / 200</span>
+              </div>
+            </div>
+            <div class="hud-chips">
+              <div class="pill chip" title="Slimes remaining">
+                <span class="icon" data-icon="slime"></span>
+                <span class="chip-label">Slimes</span>
+                <span id="enemy-text">0</span>
+              </div>
+              <div class="pill chip" title="Score">
+                <span class="icon" data-icon="coin"></span>
+                <span class="chip-label">Score</span>
+                <span id="score-text">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="pill wave-pill" data-reserve><span class="eyebrow">Wave</span><span id="wave-text">1 / 12</span></div>
+          <div class="hud-right" data-reserve>
+            <button class="round-btn" id="btn-settings" aria-label="Settings" title="Settings">
+              <span class="icon" data-icon="gear"></span>
+            </button>
+            <button class="round-btn" id="btn-pause" aria-label="Pause" title="Pause (Esc)">
+              <span class="icon" data-icon="pause"></span>
+            </button>
+          </div>
+        </div>
+        <div id="game-footer" class="hidden" data-reserve>
+          <div class="combat-controls">
+            <button class="pulse-btn" id="btn-pulse" disabled aria-label="Crystal Pulse: push slimes back and interrupt attacks. Space.">
+              <span class="icon" data-icon="sparkle"></span><span><strong>Crystal Pulse</strong><small id="pulse-status">Ready</small></span><kbd>Space</kbd>
+            </button>
+            <div class="target-control"><span id="target-status">Tap a slime to focus fire</span><button id="btn-clear-target" class="hidden" aria-label="Clear priority target" title="Clear target">×</button></div>
+          </div>
+          <span class="auto-hint">Pulse pushes slimes back and interrupts warned attacks.</span>
+          <div id="build-summary" aria-label="Your upgrades"></div>
+        </div>
+
+        <!-- Boss HP bar (wave 12) -->
+        <div id="boss-bar" class="hidden" data-reserve>
+          <div class="boss-name"><span class="icon" data-icon="crown"></span> Slime King</div>
+          <div class="boss-track">
+            <div class="boss-ghost" id="boss-ghost"></div>
+            <div class="boss-fill" id="boss-fill"></div>
+          </div>
+        </div>
+
+        <!-- Transient banners ("Wave 3", "Wave Cleared!") -->
+        <div id="banner" aria-live="polite"></div>
+
+        <!-- ===== Main menu ===== -->
+        <div id="menu-screen" class="screen">
+          <div class="menu-top" data-reserve>
+            <h1 class="logo">
+              <span class="logo-line logo-small">Last Tower</span>
+              <span class="logo-line logo-big">Standing</span>
+            </h1>
+            <p class="tagline">One crystal. Twelve waves. Make every upgrade count.</p>
+          </div>
+          <div class="menu-bottom" data-reserve>
+            <button class="btn btn-primary btn-play" id="btn-play">
+              <span class="icon" data-icon="play"></span> Defend the crystal
+            </button>
+            <div class="menu-row">
+              <button class="btn btn-small" id="btn-menu-settings">
+                <span class="icon" data-icon="gear"></span> Settings
+              </button>
+              <button class="btn btn-small" id="btn-menu-sound">
+                <span class="icon" data-icon="sound"></span> <span class="label">Sound On</span>
+              </button>
+            </div>
+            <div class="howto"><span><span class="icon" data-icon="power"></span> Tap to focus</span><span><span class="icon" data-icon="sparkle"></span> Pulse to repel</span><span><span class="icon" data-icon="crown"></span> Upgrade & survive</span></div>
+            <p class="best" id="menu-best"></p>
+          </div>
+        </div>
+
+        <!-- ===== Upgrade choice ===== -->
+        <div id="upgrade-screen" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="upgrade-title" tabindex="-1">
+          <div class="upgrade-panel">
+            <div class="upgrade-head">
+              <div class="upgrade-sub" id="upgrade-sub">Wave 1 cleared</div>
+              <h2 id="upgrade-title">Choose an upgrade</h2>
+              <p class="upgrade-instruction">Pick one to power up your tower.</p>
+            </div>
+            <div class="cards" id="cards"></div>
+            <p class="keyboard-hint">Choose a card <span>or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span></p>
+          </div>
+        </div>
+
+        <!-- ===== Pause / settings ===== -->
+        <div id="pause-screen" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title" tabindex="-1">
+          <div class="panel">
+            <h2 id="pause-title">Paused</h2>
+            <p class="panel-caption" id="pause-caption">Take a breath. Your crystal is safe.</p>
+            <div class="panel-buttons game-only">
+              <button class="btn btn-primary" id="btn-resume"><span class="icon" data-icon="play"></span> Resume</button>
+            </div>
+            <div class="settings">
+              <button class="toggle" id="tgl-sound"><span class="icon" data-icon="sound"></span><span class="t-label">Sound</span><span class="t-val"></span></button>
+              <button class="toggle" id="tgl-shake"><span class="icon" data-icon="shake"></span><span class="t-label">Screen shake</span><span class="t-val"></span></button>
+              <button class="toggle" id="tgl-fx"><span class="icon" data-icon="sparkle"></span><span class="t-label">Reduced effects</span><span class="t-val"></span></button>
+            </div>
+            <div class="panel-buttons game-only">
+              <button class="btn" id="btn-restart"><span class="icon" data-icon="restart"></span> Restart</button>
+              <button class="btn" id="btn-quit"><span class="icon" data-icon="home"></span> Main Menu</button>
+            </div>
+            <div class="panel-buttons menu-only">
+              <button class="btn btn-primary" id="btn-close-settings">Done</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Game over / victory ===== -->
+        <div id="result-screen" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="result-title" tabindex="-1">
+          <div class="panel result-panel">
+            <div class="result-badge" id="result-badge"></div>
+            <h2 id="result-title">Victory!</h2>
+            <p class="result-sub" id="result-sub"></p>
+            <div class="stats">
+              <div class="stat"><span class="stat-label">Waves</span><span class="stat-val" id="res-wave">0</span></div>
+              <div class="stat"><span class="stat-label">Slimes popped</span><span class="stat-val" id="res-kills">0</span></div>
+              <div class="stat"><span class="stat-label">Score</span><span class="stat-val" id="res-score">0</span></div>
+            </div>
+            <p class="best" id="res-best"></p>
+            <div class="panel-buttons">
+              <button class="btn btn-primary" id="btn-again"><span class="icon" data-icon="restart"></span> Play Again</button>
+              <button class="btn" id="btn-res-menu"><span class="icon" data-icon="home"></span> Main Menu</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="screen" role="status"><div class="loader-crystal"></div><p>Waking the crystal…</p></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
